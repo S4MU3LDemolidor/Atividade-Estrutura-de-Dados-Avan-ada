@@ -6,8 +6,12 @@ aleatórias comparadas com sorted().
 """
 
 import random
+import time
 import unittest
+from unittest import mock
 
+from ordenacao import contagem as modulo_contagem
+from ordenacao.contagem import FaixaGrandeDemais, contagem
 from ordenacao.hibrida import hibrida
 from ordenacao.insercao import insercao
 from ordenacao.intercalacao import intercalacao
@@ -102,6 +106,27 @@ class TestHibrida(CasosComuns, unittest.TestCase):
         for corte in (1, 64, 1000):
             with self.subTest(corte=corte):
                 self.assertEqual(hibrida(v, corte=corte), sorted(v))
+
+
+
+class TestContagem(CasosComuns, unittest.TestCase):
+    metodo = staticmethod(contagem)
+
+    def test_faixa_grande_e_recusada_sem_alocar(self):
+        inicio = time.perf_counter()
+        with self.assertRaises(FaixaGrandeDemais):
+            contagem([0, 10**12])
+        self.assertLess(time.perf_counter() - inicio, 0.1)
+
+    def test_faixa_no_limite_e_aceita(self):
+        with mock.patch.object(modulo_contagem, "LIMITE_CONTADORES", 10):
+            self.assertEqual(contagem([9, 0, 5]), [0, 5, 9])
+            with self.assertRaises(FaixaGrandeDemais):
+                contagem([10, 0, 5])
+
+    def test_minimo_e_maximo_repassados(self):
+        v = [3, -4, 8, 3, 0]
+        self.assertEqual(contagem(v, minimo=-4, maximo=8), sorted(v))
 
 
 if __name__ == "__main__":

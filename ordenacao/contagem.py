@@ -20,4 +20,24 @@ def contagem(v: list[int], minimo: int | None = None, maximo: int | None = None)
     de novo. Lança FaixaGrandeDemais se maximo - minimo + 1 passar de
     LIMITE_CONTADORES. Não altera v.
     """
-    raise NotImplementedError
+    if not v:
+        return []
+    if minimo is None or maximo is None:
+        minimo, maximo = min(v), max(v)
+
+    faixa = maximo - minimo + 1
+    if faixa > LIMITE_CONTADORES:
+        raise FaixaGrandeDemais(
+            f"a faixa {minimo}..{maximo} precisaria de {faixa} contadores "
+            f"(limite: {LIMITE_CONTADORES})"
+        )
+
+    contadores = [0] * faixa
+    for x in v:
+        contadores[x - minimo] += 1
+
+    saida = []
+    for deslocado, quantidade in enumerate(contadores):
+        if quantidade:
+            saida.extend([deslocado + minimo] * quantidade)
+    return saida
