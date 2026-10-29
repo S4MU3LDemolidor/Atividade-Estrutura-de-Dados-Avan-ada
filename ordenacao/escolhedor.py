@@ -16,12 +16,19 @@ from ordenacao.insercao import insercao
 from ordenacao.intercalacao import intercalacao
 from ordenacao.rapida import rapida
 
-# Limiares provisórios, até rodar a calibração.
-N_MINUSCULA = 16
-FRACAO_DESCIDAS = 0.05
-FATOR_QUEDAS = 4.0
-FATOR_CONTAGEM = 2.0
-N_MIN_BASE = {1: 64, 2: 128, 3: 256, 4: 512, 5: 1024, 6: 2048, 7: 4096, 8: 8192}
+# Limiares tirados de resultados/calibracao.md (python3 -m medicoes.calibrar).
+
+# Até esse tamanho a inserção vence todos os outros métodos.
+N_MINUSCULA = 24
+# Metade da maior fração de descidas em que a inserção ainda venceu (desordem local).
+FRACAO_DESCIDAS = 0.228
+# Metade do maior quedas/amplitude em que a inserção ainda venceu (desordem longe).
+FATOR_QUEDAS = 3.38
+# Maior razão faixa/n em que a contagem ainda venceu a base e a híbrida.
+FATOR_CONTAGEM = 2
+# Para cada número de passadas da base, o menor n a partir do qual ela vence a híbrida.
+N_MIN_BASE = {1: 64, 2: 256, 3: 256, 4: 512, 5: 512, 6: 1024,
+              7: 1024, 8: 2048, 9: 2048, 10: 2048, 11: 4096, 12: 8192}
 
 METODOS = {
     "insercao": insercao,

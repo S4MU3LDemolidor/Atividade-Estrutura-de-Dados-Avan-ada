@@ -8,7 +8,7 @@ feita em medicoes/calibrar.py.
 from ordenacao.insercao import insercao_intervalo
 from ordenacao.rapida import particionar
 
-CORTE = 16  # provisório, até rodar a calibração
+CORTE = 24  # o mais rápido na calibração (resultados/calibracao.md)
 
 
 def hibrida(v: list[int], corte: int = CORTE) -> list[int]:
