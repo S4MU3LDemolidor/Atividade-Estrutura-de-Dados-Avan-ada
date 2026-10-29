@@ -145,7 +145,8 @@ class Calibracao:
                            numero(p.quedas / (p.maximo - p.minimo), 2),
                            numero(t_ins * 1e3), f"{melhor} {numero(t_melhor * 1e3)}",
                            "sim" if venceu else "não"])
-        maior = ultimo_antes_da_derrota(resultados) or 0.0
+        # a razão medida nem sempre cresce na ordem da varredura; decide em ordem de razão
+        maior = ultimo_antes_da_derrota(sorted(resultados)) or 0.0
         fracao_descidas = round(maior / 2, 3)
         self.limiares["FRACAO_DESCIDAS"] = fracao_descidas
         self.secao(
@@ -175,7 +176,8 @@ class Calibracao:
             linhas.append([trocas, numero(p.descidas / N, 4), numero(razao, 2),
                            numero(t_ins * 1e3), f"{melhor} {numero(t_melhor * 1e3)}",
                            "sim" if venceu else "não"])
-        maior = ultimo_antes_da_derrota(resultados) or 0.0
+        # a razão medida nem sempre cresce na ordem da varredura; decide em ordem de razão
+        maior = ultimo_antes_da_derrota(sorted(resultados)) or 0.0
         fator_quedas = round(maior / 2, 2)
         self.limiares["FATOR_QUEDAS"] = fator_quedas
         self.secao(
@@ -296,7 +298,7 @@ def main(argv=None) -> None:
 
     random.seed(args.semente)
     calibracao = Calibracao(args.repeticoes, args.semente)
-    print("Calibrando (cerca de 1 minuto)...", file=sys.stderr)
+    print("Calibrando (cerca de 25 segundos)...", file=sys.stderr)
     for experimento in (calibracao.medir_corte, calibracao.medir_minuscula, calibracao.medir_descidas,
                         calibracao.medir_quedas, calibracao.medir_contagem, calibracao.medir_base,
                         calibracao.medir_passada):

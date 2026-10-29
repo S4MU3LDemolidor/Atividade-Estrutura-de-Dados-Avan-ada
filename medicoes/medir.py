@@ -288,7 +288,7 @@ def main(argv=None) -> None:
     args = parser.parse_args(argv)
 
     medicao = Medicao(args.n, args.repeticoes, args.semente)
-    print("Medindo (cerca de 20 segundos com os valores padrão)...", file=sys.stderr)
+    print("Medindo (cerca de 15 segundos com os valores padrão)...", file=sys.stderr)
     relatorio = medicao.executar()
 
     RESULTADOS.mkdir(exist_ok=True)
