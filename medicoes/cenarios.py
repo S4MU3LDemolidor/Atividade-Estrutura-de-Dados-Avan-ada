@@ -60,3 +60,34 @@ def metades_trocadas(n: int, semente: int) -> list[int]:
     v = sorted(aleatorio_chaves_grandes(n, semente))
     meio = n // 2
     return v[meio:] + v[:meio]
+
+
+# ---------------------------------------------------------------------------
+# Listas que enganam o escolhedor (medicoes/erros.py). Todas são feitas de
+# sequências longas fora de ordem, que a regra das quedas não enxerga.
+
+def blocos_decrescentes(n: int, semente: int, tamanho: int = 5) -> list[int]:
+    """Chaves grandes em blocos crescentes de `tamanho`, com os blocos em ordem decrescente."""
+    v = sorted(aleatorio_chaves_grandes(n, semente))
+    blocos = [v[i:i + tamanho] for i in range(0, n, tamanho)]
+    return [x for bloco in reversed(blocos) for x in bloco]
+
+
+def listas_concatenadas(n: int, semente: int, quantas: int = 3) -> list[int]:
+    """`quantas` listas de chaves grandes, cada uma já ordenada, uma depois da outra."""
+    gerador = random.Random(semente)
+    v = []
+    for i in range(quantas):
+        tamanho = n // quantas + (1 if i < n % quantas else 0)
+        v += sorted(gerador.randrange(CHAVE_GRANDE) for _ in range(tamanho))
+    return v
+
+
+def corridas_com_extremo(n: int, semente: int, tamanho: int = 5) -> list[int]:
+    """Blocos crescentes de `tamanho` em ordem embaralhada, mais um valor muito
+    maior que todos os outros no fim."""
+    gerador = random.Random(semente)
+    v = sorted(aleatorio_chaves_grandes(n - 1, semente))
+    blocos = [v[i:i + tamanho] for i in range(0, n - 1, tamanho)]
+    gerador.shuffle(blocos)
+    return [x for bloco in blocos for x in bloco] + [CHAVE_GRANDE * 1000]

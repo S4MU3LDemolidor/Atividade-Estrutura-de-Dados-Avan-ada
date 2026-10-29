@@ -47,6 +47,25 @@ class TestCenarios(unittest.TestCase):
         self.assertEqual(descidas(v), 1)
         self.assertGreater(v[0], v[-1])
 
+    def test_blocos_decrescentes(self):
+        v = cenarios.blocos_decrescentes(1000, 1, tamanho=5)
+        self.assertEqual(len(v), 1000)
+        self.assertEqual(descidas(v), 1000 // 5 - 1)
+        self.assertEqual(v, cenarios.blocos_decrescentes(1000, 1, tamanho=5))
+
+    def test_listas_concatenadas(self):
+        v = cenarios.listas_concatenadas(1000, 1, quantas=3)
+        self.assertEqual(len(v), 1000)
+        self.assertLessEqual(descidas(v), 2)
+        self.assertEqual(v, cenarios.listas_concatenadas(1000, 1, quantas=3))
+
+    def test_corridas_com_extremo(self):
+        v = cenarios.corridas_com_extremo(1000, 1, tamanho=5)
+        self.assertEqual(len(v), 1000)
+        self.assertEqual(v[-1], max(v))
+        self.assertGreater(v[-1], 100 * max(v[:-1]))
+        self.assertEqual(v, cenarios.corridas_com_extremo(1000, 1, tamanho=5))
+
     def test_lote_de_minusculas(self):
         lote = cenarios.lote_minusculas(50, 8, 1)
         self.assertEqual(len(lote), 50)

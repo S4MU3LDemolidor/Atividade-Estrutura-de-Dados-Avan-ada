@@ -193,9 +193,11 @@ class TestErroConhecido(unittest.TestCase):
     precisa ser revisto.
     """
 
-    def test_metades_trocadas_vai_para_insercao(self):
-        v = cenarios.metades_trocadas(10_000, 2026)
-        self.assertEqual(escolher(v).metodo, "insercao")
+    def test_listas_de_sequencias_longas_vao_para_insercao(self):
+        for gerar in (cenarios.metades_trocadas, cenarios.listas_concatenadas,
+                      cenarios.blocos_decrescentes, cenarios.corridas_com_extremo):
+            with self.subTest(lista=gerar.__name__):
+                self.assertEqual(escolher(gerar(10_000, 2026)).metodo, "insercao")
 
 
 class TestLimiaresDaCalibracao(unittest.TestCase):
