@@ -10,6 +10,7 @@ import unittest
 
 from ordenacao.insercao import insercao
 from ordenacao.intercalacao import intercalacao
+from ordenacao.rapida import particionar, rapida
 
 
 class CasosComuns:
@@ -69,6 +70,25 @@ class TestInsercao(CasosComuns, unittest.TestCase):
 
 class TestIntercalacao(CasosComuns, unittest.TestCase):
     metodo = staticmethod(intercalacao)
+
+
+class TestRapida(CasosComuns, unittest.TestCase):
+    metodo = staticmethod(rapida)
+
+    def test_particionar_separa_em_tres_faixas(self):
+        gerador = random.Random(11)
+        for _ in range(50):
+            a = [gerador.randrange(20) for _ in range(60)]
+            original = sorted(a)
+            ini, fim = 5, 50
+            fora = a[:ini] + a[fim + 1:]
+            menor, maior = particionar(a, ini, fim)
+            pivo = a[menor]
+            self.assertTrue(all(x < pivo for x in a[ini:menor]))
+            self.assertTrue(all(x == pivo for x in a[menor:maior + 1]))
+            self.assertTrue(all(x > pivo for x in a[maior + 1:fim + 1]))
+            self.assertEqual(a[:ini] + a[fim + 1:], fora)
+            self.assertEqual(sorted(a), original)
 
 
 if __name__ == "__main__":
