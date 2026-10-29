@@ -77,8 +77,10 @@ O valor atualizado fica em `resultados/calibracao.md`.
 
 1. `n < 2` ou `n <= N_MINUSCULA` → **inserção** (sem percorrer a lista).
 2. `descidas <= FRACAO_DESCIDAS * n` e `quedas <= FATOR_QUEDAS * (maximo - minimo)` → **inserção** (quase ordenada).
-   As quedas medem o trabalho da inserção. As descidas protegem contra um valor
-   extremo isolado, que aumenta a amplitude e faria as quedas parecerem pequenas.
+   As quedas medem o trabalho da inserção. As descidas protegem listas perto de
+   aleatórias que têm um valor extremo, que aumenta a amplitude e faria as quedas
+   parecerem pequenas. Em listas com poucas descidas o extremo continua
+   enganando a regra (ver seção 8).
 3. `k = maximo - minimo + 1`. Se `k <= LIMITE_CONTADORES` e `k <= FATOR_CONTAGEM * n` → **contagem**.
 4. `p = passadas(maximo - minimo)`. Se `p` está em `N_MIN_BASE` e `n >= N_MIN_BASE[p]` → **base**.
 5. Caso contrário → **híbrida**.
@@ -103,9 +105,9 @@ Todos saem de `medicoes/calibrar.py` e ficam como constantes em
 |---|---|
 | `CORTE` (híbrida) | Híbrida em lista aleatória de 10 mil com cortes de 1 a 64; fica o mais rápido. |
 | `N_MINUSCULA` | Listas aleatórias de 2 a 64 elementos (em lote); maior `n` em que a inserção ainda vence todos os outros. |
-| `FRACAO_DESCIDAS` | Listas quase ordenadas de 10 mil com fração crescente de trocas locais; maior `descidas/n` em que a inserção vence, dividido por 2 como margem de segurança (errar para a inserção custa O(n²)). |
+| `FRACAO_DESCIDAS` | Listas quase ordenadas de 10 mil com fração crescente de trocas locais; maior `descidas/n` em que a inserção vence, dividido por 2 como margem de segurança (errar para a inserção custa O(n²)). Com trocas de até 10 posições a inserção custa no máximo cerca de 10n e não perde em nenhum ponto da varredura, então o valor é metade do maior ponto medido: na prática, um limite de projeto para barrar listas perto de aleatórias. |
 | `FATOR_QUEDAS` | Listas ordenadas de 10 mil com um número crescente de trocas entre posições sorteadas (desordem longe); maior `quedas / (maximo - minimo)` em que a inserção vence, dividido por 2 pelo mesmo motivo. |
-| `FATOR_CONTAGEM` | Listas de 10 mil com faixa `k = r * n`, `r` de 0,01 a 64; maior `r` em que a contagem vence base e híbrida. |
+| `FATOR_CONTAGEM` | Listas de 10 mil com faixa `k = r * n`, `r` de 0,01 a 128; maior `r` em que a contagem vence base e híbrida. |
 | `N_MIN_BASE[p]` | Para `p` de 1 a 12 passadas e `n` de 16 a 16384; menor `n` a partir do qual a base vence a híbrida. Se ela nunca vence, `p` fica fora da tabela. |
 
 A calibração também repete o experimento da seção 5.1 (passada única contra
@@ -163,8 +165,14 @@ No cenário extra `metades_trocadas` há uma descida só, e a queda dela é
 praticamente a amplitude inteira, então a estimativa dá cerca de 1 deslocamento
 por elemento e o `escolher` aposta na inserção. Na verdade metade dos elementos
 precisa atravessar a outra metade, o que dá cerca de n²/4 deslocamentos. A
-estimativa supõe elementos deslocados um a um; um **bloco** deslocado engana
-tanto as descidas quanto as quedas. O relatório mede o tamanho do erro.
+estimativa só vale quando os elementos fora do lugar estão isolados. Somando
+os passos entre vizinhos, `quedas = subidas + v[0] - v[n-1]`, então
+`quedas / amplitude` conta quantas vezes a lista percorre a faixa de valores, e
+não a distância de cada elemento até o seu lugar. Qualquer lista feita de
+poucas sequências longas fora de ordem (metades trocadas, listas ordenadas
+concatenadas, blocos em ordem decrescente) engana a regra, assim como um valor
+extremo somado a uma lista com poucas descidas. O relatório mede o tamanho do
+erro e mostra esses casos.
 
 ## 9. Testes
 
@@ -186,7 +194,7 @@ tanto as descidas quanto as quedas. O relatório mede o tamanho do erro.
 
 - `resultados/calibracao.md`: tabelas de cada varredura e os limiares sugeridos.
 - `resultados/medicoes.csv`: todos os tempos brutos (cenário, método, repetição, segundos).
-- `resultados/tabela.md`: medianas, razões, vencedores, custo do `escolher` e cenário de erro, com a máquina e a versão do Python.
+- `resultados/tabela.md`: menores tempos, razões, vencedores, custo do `escolher` e cenário de erro, com a máquina e a versão do Python.
 
 ## 11. Fora do escopo
 
