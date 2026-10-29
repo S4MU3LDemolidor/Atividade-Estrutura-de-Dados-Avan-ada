@@ -9,6 +9,7 @@ import random
 import unittest
 
 from ordenacao.insercao import insercao
+from ordenacao.intercalacao import intercalacao
 
 
 class CasosComuns:
@@ -64,6 +65,10 @@ class CasosComuns:
 
 class TestInsercao(CasosComuns, unittest.TestCase):
     metodo = staticmethod(insercao)
+
+
+class TestIntercalacao(CasosComuns, unittest.TestCase):
+    metodo = staticmethod(intercalacao)
 
 
 if __name__ == "__main__":
