@@ -37,6 +37,20 @@ def com_descidas(n, quantidade):
     return v
 
 
+def trocas_longe(n, trocas):
+    """Lista crescente com `trocas` trocas entre as posições i e i + n/2.
+
+    As trocas ficam espaçadas, então cada uma desloca dois elementos por n/2
+    posições e soma quase uma amplitude inteira às quedas.
+    """
+    v = [CHAVE_GRANDE + 7 * i for i in range(n)]
+    for t in range(trocas):
+        i = 3 * t
+        j = i + n // 2
+        v[i], v[j] = v[j], v[i]
+    return v
+
+
 class ContaAcessos(list):
     """Lista que conta quantas vezes foi percorrida ou indexada."""
 
@@ -84,6 +98,24 @@ class TestQuaseOrdenada(unittest.TestCase):
     def test_acima_do_limiar_nao_vai_para_insercao(self):
         limite = math.floor(escolhedor.FRACAO_DESCIDAS * self.n)
         self.assertNotEqual(escolher(com_descidas(self.n, limite + 1)).metodo, "insercao")
+
+    def test_trocas_longe_ate_o_fator_vao_para_insercao(self):
+        trocas = math.floor(escolhedor.FATOR_QUEDAS)
+        if trocas == 0:
+            self.skipTest("FATOR_QUEDAS < 1")
+        self.assertEqual(escolher(trocas_longe(self.n, trocas)).metodo, "insercao")
+
+    def test_trocas_longe_acima_do_fator_nao_vao_para_insercao(self):
+        trocas = math.floor(escolhedor.FATOR_QUEDAS) + 2
+        # poucas descidas: quem decide aqui são as quedas
+        self.assertLessEqual(2 * trocas, escolhedor.FRACAO_DESCIDAS * self.n)
+        self.assertNotEqual(escolher(trocas_longe(self.n, trocas)).metodo, "insercao")
+
+    def test_valor_extremo_isolado_nao_engana(self):
+        # o extremo infla a amplitude e deixa as quedas pequenas; as descidas barram
+        gerador = random.Random(4)
+        v = [gerador.randrange(1000) for _ in range(self.n)] + [CHAVE_GRANDE]
+        self.assertNotEqual(escolher(v).metodo, "insercao")
 
 
 class TestFaixaEstreita(unittest.TestCase):

@@ -1,8 +1,9 @@
 """Escolhe o método de ordenação mais adequado para uma lista.
 
-escolher(v) percorre a lista uma única vez e olha o tamanho, o mínimo, o máximo
-e quantas vezes um elemento é maior que o seguinte (descidas). Com isso aplica
-regras cujos limiares saem das medições de medicoes/calibrar.py.
+escolher(v) percorre a lista uma única vez e olha o tamanho, o mínimo, o máximo,
+quantas vezes um elemento é maior que o seguinte (descidas) e a soma dessas
+diferenças (quedas). Com isso aplica regras cujos limiares saem das medições de
+medicoes/calibrar.py.
 """
 
 from typing import NamedTuple
@@ -17,6 +18,7 @@ from ordenacao.rapida import rapida
 # Limiares provisórios, até rodar a calibração.
 N_MINUSCULA = 16
 FRACAO_DESCIDAS = 0.05
+FATOR_QUEDAS = 4.0
 FATOR_CONTAGEM = 2.0
 N_MIN_BASE = {1: 64, 2: 128, 3: 256, 4: 512, 5: 1024, 6: 2048, 7: 4096, 8: 8192}
 
@@ -53,16 +55,21 @@ def escolher(v: list[int]) -> Escolha:
     # novo máximo nunca é, então cada elemento custa só duas comparações.
     minimo = maximo = anterior = v[0]
     descidas = 0
+    quedas = 0
     for x in v:
         if x < anterior:
             descidas += 1
+            quedas += anterior - x
             if x < minimo:
                 minimo = x
         elif x > maximo:
             maximo = x
         anterior = x
 
-    if descidas <= FRACAO_DESCIDAS * n:
+    # quedas / (maximo - minimo) estima quantas posições, em média, cada
+    # elemento anda na inserção. As descidas barram listas desordenadas com um
+    # valor extremo, que infla a amplitude e esconde as quedas.
+    if descidas <= FRACAO_DESCIDAS * n and quedas <= FATOR_QUEDAS * (maximo - minimo):
         metodo = "insercao"
     else:
         faixa = maximo - minimo + 1
