@@ -6,6 +6,7 @@ diferenças (quedas). Com isso aplica regras cujos limiares saem das medições 
 medicoes/calibrar.py.
 """
 
+import math
 from typing import NamedTuple
 
 from ordenacao.base import base, passadas
@@ -45,14 +46,21 @@ class Escolha(NamedTuple):
     maximo: int | None
 
 
-def escolher(v: list[int]) -> Escolha:
-    """Olha a lista e devolve o método mais adequado para ordená-la."""
-    n = len(v)
-    if n < 2 or n <= N_MINUSCULA:
-        return Escolha("insercao", None, None)
+class Perfil(NamedTuple):
+    """O que a passada única descobre sobre a lista."""
 
-    # Passada única. Um novo mínimo é sempre uma descida (x < anterior) e um
-    # novo máximo nunca é, então cada elemento custa só duas comparações.
+    minimo: int
+    maximo: int
+    descidas: int  # posições com v[i] > v[i+1]
+    quedas: int    # soma de v[i] - v[i+1] nessas posições
+
+
+def perfil(v: list[int]) -> Perfil:
+    """Percorre a lista (não vazia) uma única vez e devolve o seu Perfil.
+
+    Um novo mínimo é sempre uma descida (x < anterior) e um novo máximo nunca
+    é, então cada elemento custa só duas comparações na maior parte das vezes.
+    """
     minimo = maximo = anterior = v[0]
     descidas = 0
     quedas = 0
@@ -65,21 +73,29 @@ def escolher(v: list[int]) -> Escolha:
         elif x > maximo:
             maximo = x
         anterior = x
+    return Perfil(minimo, maximo, descidas, quedas)
 
-    # quedas / (maximo - minimo) estima quantas posições, em média, cada
-    # elemento anda na inserção. As descidas barram listas desordenadas com um
-    # valor extremo, que infla a amplitude e esconde as quedas.
-    if descidas <= FRACAO_DESCIDAS * n and quedas <= FATOR_QUEDAS * (maximo - minimo):
+
+def escolher(v: list[int]) -> Escolha:
+    """Olha a lista e devolve o método mais adequado para ordená-la."""
+    n = len(v)
+    if n < 2 or n <= N_MINUSCULA:
+        return Escolha("insercao", None, None)
+
+    minimo, maximo, descidas, quedas = perfil(v)
+    amplitude = maximo - minimo
+
+    # quedas / amplitude estima quantas posições, em média, cada elemento anda
+    # na inserção. As descidas barram listas desordenadas com um valor extremo,
+    # que infla a amplitude e esconde as quedas.
+    if descidas <= FRACAO_DESCIDAS * n and quedas <= FATOR_QUEDAS * amplitude:
         metodo = "insercao"
+    elif amplitude + 1 <= LIMITE_CONTADORES and amplitude + 1 <= FATOR_CONTAGEM * n:
+        metodo = "contagem"
+    elif n >= N_MIN_BASE.get(passadas(amplitude), math.inf):
+        metodo = "base"
     else:
-        faixa = maximo - minimo + 1
-        n_min_base = N_MIN_BASE.get(passadas(maximo - minimo))
-        if faixa <= LIMITE_CONTADORES and faixa <= FATOR_CONTAGEM * n:
-            metodo = "contagem"
-        elif n_min_base is not None and n >= n_min_base:
-            metodo = "base"
-        else:
-            metodo = "hibrida"
+        metodo = "hibrida"
     return Escolha(metodo, minimo, maximo)
 
 

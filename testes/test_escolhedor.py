@@ -12,7 +12,7 @@ from unittest import mock
 from ordenacao import escolhedor
 from ordenacao.base import passadas
 from ordenacao.contagem import LIMITE_CONTADORES
-from ordenacao.escolhedor import escolher, ordenar
+from ordenacao.escolhedor import escolher, ordenar, perfil
 
 CHAVE_GRANDE = 10**12
 
@@ -153,6 +153,18 @@ class TestBaseEHibrida(unittest.TestCase):
 
     def test_faixa_enorme_vai_para_hibrida(self):
         self.assertEqual(escolher(aleatoria(2000, 2**100)).metodo, "hibrida")
+
+
+class TestPerfil(unittest.TestCase):
+    def test_minimo_maximo_descidas_e_quedas(self):
+        # descidas: 5 > 3 (queda 2) e 4 > 1 (queda 3)
+        self.assertEqual(perfil([5, 3, 4, 1, 9]), (1, 9, 2, 5))
+
+    def test_lista_crescente_nao_tem_quedas(self):
+        self.assertEqual(perfil([-2, 0, 0, 7]), (-2, 7, 0, 0))
+
+    def test_um_elemento(self):
+        self.assertEqual(perfil([4]), (4, 4, 0, 0))
 
 
 class TestPassadaUnica(unittest.TestCase):
