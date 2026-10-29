@@ -28,7 +28,7 @@ FATOR_QUEDAS = 3.38
 FATOR_CONTAGEM = 2
 # Para cada número de passadas da base, o menor n a partir do qual ela vence a híbrida.
 N_MIN_BASE = {1: 64, 2: 256, 3: 256, 4: 512, 5: 512, 6: 1024,
-              7: 1024, 8: 2048, 9: 2048, 10: 2048, 11: 4096, 12: 8192}
+              7: 1024, 8: 2048, 9: 2048, 10: 4096, 11: 4096, 12: 8192}
 
 METODOS = {
     "insercao": insercao,
