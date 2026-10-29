@@ -66,9 +66,12 @@ deslocado `d` posições cria uma queda de cerca de `d * (maximo - minimo) / n`.
 Então `quedas / (maximo - minimo)` estima quantos deslocamentos a inserção fará
 por elemento.
 
-Medição prévia (Python 3.14, 10 mil elementos): uma passada em Python custou
-0,21 ms, contra 0,28 ms de `min()` + `max()` + contagem de descidas com funções
-nativas. A passada única é mais barata, mesmo competindo com código em C.
+Medição prévia (Python 3.14, 10 mil elementos): uma passada em Python com
+mínimo, máximo e descidas custou 0,21 ms, contra 0,28 ms de `min()` + `max()` +
+contagem de descidas com funções nativas. Com as quedas a passada fica mais
+cara em listas aleatórias, onde metade dos elementos é descida (cerca de 1,2x o
+tempo das nativas), e continua mais barata nas quase ordenadas (cerca de 0,65x).
+O valor atualizado fica em `resultados/calibracao.md`.
 
 ### 5.2 Regras, nesta ordem
 
