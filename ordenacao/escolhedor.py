@@ -62,6 +62,11 @@ class Perfil(NamedTuple):
     quedas: int    # soma de v[i] - v[i+1] nessas posições
 
 
+# Resposta pronta para listas minúsculas: evita criar uma Escolha a cada chamada,
+# o que pesa quando a própria ordenação leva menos de um microssegundo.
+INSERCAO_SEM_OLHAR = Escolha("insercao", None, None)
+
+
 def perfil(v: list[int]) -> Perfil:
     """Percorre a lista (não vazia) uma única vez e devolve o seu Perfil.
 
@@ -86,8 +91,8 @@ def perfil(v: list[int]) -> Perfil:
 def escolher(v: list[int]) -> Escolha:
     """Olha a lista e devolve o método mais adequado para ordená-la."""
     n = len(v)
-    if n < 2 or n <= N_MINUSCULA:
-        return Escolha("insercao", None, None)
+    if n <= N_MINUSCULA or n < 2:
+        return INSERCAO_SEM_OLHAR
 
     minimo, maximo, descidas, quedas = perfil(v)
     amplitude = maximo - minimo
