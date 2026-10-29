@@ -50,11 +50,21 @@ Uma única passada pela lista coleta:
 
 - `n`: tamanho (de graça, com `len`);
 - `minimo` e `maximo`;
-- `descidas`: quantas posições têm `v[i] > v[i+1]`.
+- `descidas`: quantas posições têm `v[i] > v[i+1]`;
+- `quedas`: a soma de `v[i] - v[i+1]` nessas descidas.
 
 Um novo mínimo sempre é também uma descida, e um novo máximo nunca é. Por isso,
 a cada elemento, a passada faz só duas comparações na maior parte dos casos.
 Listas minúsculas nem são percorridas.
+
+Por que as quedas: medindo listas de 10 mil elementos, 1% de trocas entre
+vizinhos e 100 trocas entre posições distantes dão o mesmo número de descidas
+(cerca de 2% de n), mas a inserção leva 0,39 ms no primeiro caso e 17,4 ms no
+segundo. O custo da inserção depende de quanto cada elemento precisa andar, não
+de quantos estão fora do lugar. Se as chaves estão bem espalhadas, um elemento
+deslocado `d` posições cria uma queda de cerca de `d * (maximo - minimo) / n`.
+Então `quedas / (maximo - minimo)` estima quantos deslocamentos a inserção fará
+por elemento.
 
 Medição prévia (Python 3.14, 10 mil elementos): uma passada em Python custou
 0,21 ms, contra 0,28 ms de `min()` + `max()` + contagem de descidas com funções
@@ -63,7 +73,9 @@ nativas. A passada única é mais barata, mesmo competindo com código em C.
 ### 5.2 Regras, nesta ordem
 
 1. `n < 2` ou `n <= N_MINUSCULA` → **inserção** (sem percorrer a lista).
-2. `descidas <= FRACAO_DESCIDAS * n` → **inserção** (quase ordenada).
+2. `descidas <= FRACAO_DESCIDAS * n` e `quedas <= FATOR_QUEDAS * (maximo - minimo)` → **inserção** (quase ordenada).
+   As quedas medem o trabalho da inserção. As descidas protegem contra um valor
+   extremo isolado, que aumenta a amplitude e faria as quedas parecerem pequenas.
 3. `k = maximo - minimo + 1`. Se `k <= LIMITE_CONTADORES` e `k <= FATOR_CONTAGEM * n` → **contagem**.
 4. `p = passadas(maximo - minimo)`. Se `p` está em `N_MIN_BASE` e `n >= N_MIN_BASE[p]` → **base**.
 5. Caso contrário → **híbrida**.
@@ -89,8 +101,9 @@ Todos saem de `medicoes/calibrar.py` e ficam como constantes em
 | `CORTE` (híbrida) | Híbrida em lista aleatória de 10 mil com cortes de 1 a 64; fica o mais rápido. |
 | `N_MINUSCULA` | Listas aleatórias de 2 a 64 elementos (em lote); maior `n` em que a inserção ainda vence todos os outros. |
 | `FRACAO_DESCIDAS` | Listas quase ordenadas de 10 mil com fração crescente de trocas locais; maior `descidas/n` em que a inserção vence, dividido por 2 como margem de segurança (errar para a inserção custa O(n²)). |
+| `FATOR_QUEDAS` | Listas ordenadas de 10 mil com um número crescente de trocas entre posições sorteadas (desordem longe); maior `quedas / (maximo - minimo)` em que a inserção vence, dividido por 2 pelo mesmo motivo. |
 | `FATOR_CONTAGEM` | Listas de 10 mil com faixa `k = r * n`, `r` de 0,01 a 64; maior `r` em que a contagem vence base e híbrida. |
-| `N_MIN_BASE[p]` | Para `p` de 1 a 8 passadas e `n` de 16 a 16384; menor `n` a partir do qual a base vence a híbrida. Se ela nunca vence, `p` fica fora da tabela. |
+| `N_MIN_BASE[p]` | Para `p` de 1 a 12 passadas e `n` de 16 a 16384; menor `n` a partir do qual a base vence a híbrida. Se ela nunca vence, `p` fica fora da tabela. |
 
 A calibração também repete o experimento da seção 5.1 (passada única contra
 passadas nativas) e grava tudo em `resultados/calibracao.md`.
@@ -128,10 +141,12 @@ média geométrica das razões.
 
 ## 8. Cenário de erro
 
-No cenário extra `metades_trocadas` há só uma descida, então o `escolher`
-aposta na inserção. Mas metade dos elementos precisa atravessar a outra metade,
-o que dá cerca de n²/4 deslocamentos. O relatório mede o tamanho do erro e
-explica por que contar descidas não enxerga desordem "longe".
+No cenário extra `metades_trocadas` há uma descida só, e a queda dela é
+praticamente a amplitude inteira, então a estimativa dá cerca de 1 deslocamento
+por elemento e o `escolher` aposta na inserção. Na verdade metade dos elementos
+precisa atravessar a outra metade, o que dá cerca de n²/4 deslocamentos. A
+estimativa supõe elementos deslocados um a um; um **bloco** deslocado engana
+tanto as descidas quanto as quedas. O relatório mede o tamanho do erro.
 
 ## 9. Testes
 
