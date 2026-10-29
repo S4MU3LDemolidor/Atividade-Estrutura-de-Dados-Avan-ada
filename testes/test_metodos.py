@@ -11,6 +11,7 @@ import unittest
 from unittest import mock
 
 from ordenacao import contagem as modulo_contagem
+from ordenacao.base import base, passadas
 from ordenacao.contagem import FaixaGrandeDemais, contagem
 from ordenacao.hibrida import hibrida
 from ordenacao.insercao import insercao
@@ -127,6 +128,26 @@ class TestContagem(CasosComuns, unittest.TestCase):
     def test_minimo_e_maximo_repassados(self):
         v = [3, -4, 8, 3, 0]
         self.assertEqual(contagem(v, minimo=-4, maximo=8), sorted(v))
+
+
+
+class TestBase(CasosComuns, unittest.TestCase):
+    metodo = staticmethod(base)
+
+    def test_valores_acima_de_64_bits(self):
+        v = [2**70, -2**70, 5, 2**70 - 1, -3, 0]
+        self.assertEqual(base(v), sorted(v))
+
+    def test_minimo_e_maximo_repassados(self):
+        v = [300, -4, 70000, 3, 0]
+        self.assertEqual(base(v, minimo=-4, maximo=70000), sorted(v))
+
+    def test_passadas(self):
+        self.assertEqual(passadas(0), 0)
+        self.assertEqual(passadas(1), 1)
+        self.assertEqual(passadas(255), 1)
+        self.assertEqual(passadas(256), 2)
+        self.assertEqual(passadas(2**64 - 1), 8)
 
 
 if __name__ == "__main__":
