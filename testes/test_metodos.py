@@ -13,6 +13,7 @@ from unittest import mock
 from ordenacao import contagem as modulo_contagem
 from ordenacao.base import base, passadas
 from ordenacao.contagem import FaixaGrandeDemais, contagem
+from ordenacao.escolhedor import ordenar
 from ordenacao.hibrida import hibrida
 from ordenacao.insercao import insercao
 from ordenacao.intercalacao import intercalacao
@@ -148,6 +149,23 @@ class TestBase(CasosComuns, unittest.TestCase):
         self.assertEqual(passadas(255), 1)
         self.assertEqual(passadas(256), 2)
         self.assertEqual(passadas(2**64 - 1), 8)
+
+
+
+class TestOrdenar(CasosComuns, unittest.TestCase):
+    metodo = staticmethod(ordenar)
+
+    def test_listas_grandes_de_cada_tipo(self):
+        gerador = random.Random(9)
+        casos = {
+            "faixa estreita": [gerador.randrange(-50, 50) for _ in range(3000)],
+            "chaves grandes": [gerador.randrange(-10**12, 10**12) for _ in range(3000)],
+            "chaves enormes": [gerador.randrange(-2**90, 2**90) for _ in range(3000)],
+            "quase ordenada": list(range(2990)) + [2995, 2993, 2991, 2994, 2990, 2999, 2992],
+        }
+        for nome, v in casos.items():
+            with self.subTest(caso=nome):
+                self.assertEqual(ordenar(v), sorted(v))
 
 
 if __name__ == "__main__":
