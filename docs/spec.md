@@ -120,15 +120,30 @@ Gerados em `medicoes/cenarios.py`, sempre a partir de uma semente.
 | Aleatório com chaves grandes | `aleatorio_chaves_grandes(n, semente)` | n = 10 000, valores em [0, 10¹²) |
 | Faixa estreita | `faixa_estreita(n, semente)` | n = 10 000, valores em [0, 100) |
 | Quase ordenado | `quase_ordenado(n, semente, fracao=0.01)` | n = 10 000, valores em [0, 10¹²) ordenados; depois `fracao * n` trocas, cada uma entre a posição `i` e `i + d`, com `d` de 1 a 10 |
-| Lista minúscula | `minuscula(n, semente)` | n = 8, valores em [0, 10⁶) |
+| Lista minúscula | `minuscula(n, semente)` | n = 8, valores em [0, 10⁴) |
 | Extra (caso de erro) | `metades_trocadas(n, semente)` | n = 10 000: lista ordenada de chaves grandes com a segunda metade movida para a frente |
 
 ## 7. Metodologia de medição
 
 - `medicoes/medir.py` mede os 6 métodos e o `ordenar` em cada cenário.
-- Cada medição é repetida `R` vezes (padrão 5), e o relatório usa a **mediana**.
+- Cada medição é repetida `R` vezes (padrão 5) de forma **intercalada**: cada
+  rodada mede todos os concorrentes do cenário uma vez, e a ordem gira de uma
+  rodada para outra. Assim uma interferência passageira atinge todos os métodos,
+  e não só o que estava sendo medido naquele momento.
+- O relatório usa o **mínimo** das repetições. A interferência (outros processos,
+  troca de núcleo) só atrasa, nunca adianta, então o menor tempo é a melhor
+  estimativa do custo do método. É a mesma recomendação da documentação do
+  módulo `timeit`. Motivo concreto: no Apple M4 (4 núcleos de desempenho e 6 de
+  eficiência), uma primeira versão com mediana e repetições seguidas registrou o
+  `escolher` em 0,22 ms nas duas primeiras repetições e 0,55 ms nas três últimas.
+  Forçando o processo nos núcleos de eficiência (`taskpolicy -b`), o mesmo
+  código leva no mínimo 0,556 ms. O sistema tinha trocado o processo de núcleo
+  no meio da medição.
+- A calibração usa o mesmo esquema (intercalado e mínimo).
 - O tempo é medido com `time.perf_counter_ns()` e o coletor de lixo fica desligado durante a medição.
-- Lista minúscula: cada repetição ordena um lote de 2000 listas diferentes, e o tempo reportado é por lista.
+- Lista minúscula: cada repetição ordena um lote de 1000 listas diferentes, e o tempo reportado é por lista.
+- Conferência automática: se o `escolher` sozinho sair mais lento que o
+  `ordenar` (que o inclui), a medição avisa que houve interferência.
 - A semente é fixa (padrão 2026), inclusive a do `random` usado pelos pivôs.
 - Se a contagem recusar a faixa (`FaixaGrandeDemais`), a célula da tabela mostra "recusou".
 - O custo do `escolher` sozinho é medido em cada cenário e comparado com o tempo do `ordenar`.
