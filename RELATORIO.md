@@ -70,9 +70,12 @@ quanto ele perde no cenário que mais o prejudica:
 | **ordenar** | 1,12 | 1,25 | 1,53 | 1,12 | **1,53** | **1,25** |
 
 A melhor escolha fixa por esse critério é a híbrida, que perde até 15,76 vezes.
-O `ordenar` perde no máximo 1,53 vez. Rodando a medição duas vezes, a pior razão
-do `ordenar` deu 1,53 nas duas, e as razões dele variaram menos de 0,1 entre as
-rodadas.
+O `ordenar` perde no máximo 1,53 vez. Rodando de novo com a mesma semente (só
+muda o ruído da medição), a pior razão do `ordenar` deu 1,53 outra vez, e as
+razões dele variaram menos de 0,1. Como a calibração usou as mesmas listas da
+medição, rodamos também com outra semente (`--semente 7`, listas diferentes):
+o `ordenar` ficou com pior razão 1,51 contra 15,72 da híbrida, e os vencedores
+de cada cenário foram os mesmos.
 
 ## 3. Quem venceu cada cenário, e por quê
 
@@ -94,7 +97,8 @@ valores distintos a recursão acaba logo. Com a partição clássica em duas via
 os repetidos levariam a O(n²).
 
 **Quase ordenado: inserção (0,39 ms).** A inserção custa O(n + inversões).
-Nessa lista há 182 descidas, e cada elemento anda em média 0,075 posição. Na
+Nessa lista há 182 descidas, e a estimativa das quedas dá 0,075 deslocamento
+por elemento (contando de verdade, são 0,087 inversões por elemento). Na
 prática, é uma passada só. A base ignora a ordem que já existe (2,46 ms, 6,4x),
 e os métodos por comparação também (de 5,9 a 7,0 ms, 15 a 18x).
 
@@ -103,7 +107,8 @@ fixo de cada método. A inserção não faz recursão e não aloca nada além da
 A híbrida quase empata (0,69 µs), porque com corte 20 ela vai direto para a
 inserção e só paga uma chamada a mais. A intercalação e a rápida pagam recursão
 (cerca de 2 µs). A base aloca 256 baldes por passada para ordenar 8 números
-(15,9 µs). A contagem aloca 10 mil contadores (89,6 µs, 135x). Ela não estoura o
+(15,9 µs). A contagem aloca até 10 mil contadores, um para cada valor entre o mínimo e o
+máximo de cada lista (89,6 µs, 135x). Ela não estoura o
 limite de memória, mas mostra por que a regra da contagem compara a faixa com o
 tamanho da lista, e não só com o limite.
 
@@ -132,7 +137,7 @@ em `resultados/calibracao.md`):
 | Limiar | Valor | De onde veio |
 |---|---|---|
 | `N_MINUSCULA` | 24 | Listas aleatórias de 2 a 64 elementos. A inserção vence todos até 24 (3,61 µs contra 3,73 da híbrida); com 32, a híbrida já vence (5,50 contra 6,01). |
-| `FRACAO_DESCIDAS` | 0,228 | Listas com desordem local crescente. A inserção venceu em toda a varredura, até 45,7% de descidas; usamos metade disso. |
+| `FRACAO_DESCIDAS` | 0,228 | Listas com desordem local crescente (trocas de até 10 posições). A inserção não perdeu em nenhum ponto, nem com 45,7% de descidas: com trocas tão curtas ela custa no máximo cerca de 10n. Não há ponto de virada, então 0,228 (metade do maior ponto medido) é um limite de projeto, que serve para barrar listas perto de aleatórias. |
 | `FATOR_QUEDAS` | 3,38 | Listas com trocas entre posições distantes. A inserção vence até quedas/amplitude = 6,76 (2,17 ms contra 2,51 da base) e perde a partir de 11,83 (3,43 contra 2,48); usamos metade de 6,76. |
 | `FATOR_CONTAGEM` | 2 | Faixa k = 2n: contagem 0,93 ms contra 1,01 da base. Com k = 4n: 1,21 contra 1,02. |
 | `LIMITE_CONTADORES` | 10 milhões | Não é calibrado: é um teto de memória. 10 milhões de contadores numa lista do Python ocupam cerca de 80 MB. |
@@ -146,26 +151,34 @@ com 100 trocas entre posições distantes tem quase a mesma coisa (1,94%), mas a
 inserção leva 15,5 ms, 40 vezes mais. O custo da inserção depende de **quanto**
 cada elemento precisa andar, não de quantos estão fora do lugar. Se as chaves
 estão bem espalhadas, um elemento deslocado `d` posições cria uma queda de
-cerca de `d × amplitude / n`. Então `quedas / amplitude` estima quantas posições
-cada elemento anda, em média, na inserção: 0,08 no primeiro caso e 59,3 no
-segundo. As descidas continuam na regra por outro motivo: um único valor
-extremo (por exemplo, uma lista aleatória com um 10¹² no meio) aumenta a
-amplitude e faria as quedas parecerem pequenas. Uma lista assim tem cerca de n/2
-descidas e é barrada.
+cerca de `d × amplitude / n`. Então, quando os elementos fora do lugar estão
+isolados, `quedas / amplitude` estima quantas posições cada elemento anda, em
+média, na inserção: 0,08 no primeiro caso e 59,3 no segundo (a seção 6 mostra
+quando essa suposição falha). As descidas continuam na regra para outro caso:
+um único valor muito maior que todos os outros aumenta a amplitude e faz as
+quedas parecerem pequenas. Se a lista for perto de aleatória, ela tem cerca de
+n/2 descidas e é barrada; se tiver menos descidas, o extremo engana a regra
+(também na seção 6).
 
 **Por que margem de 2x só nas regras da inserção.** Os erros não custam o mesmo.
 Mandar para a inserção uma lista que não é quase ordenada custa O(n²): na seção
-6, isso dá 261 vezes mais lento. Errar a contagem ou a base custa um fator
-constante, cerca de 2x no pior caso medido. Por isso as regras da inserção levam
-margem de segurança e as outras não.
+6, isso dá de 166 a 500 vezes mais lento. Perto dos limiares da contagem e da
+base, errar o lado custa pouco: nas varreduras da calibração, a diferença entre
+os dois lados de um limiar fica em 1,5x ou menos (por exemplo, com k = 4n a
+contagem leva 1,21 ms contra 1,02 da base). E esse custo nunca é quadrático. Por
+isso as regras da inserção levam margem de segurança e as outras não.
 
 **Por que essa ordem.** A inserção vem primeiro porque, quando a lista está
-quase ordenada, ela é O(n) e não há como fazer melhor. Depois vem a contagem,
+quase ordenada, ela é O(n) e não aloca nada além da cópia. Depois vem a contagem,
 O(n + k) com k ≤ 2n, depois a base. A híbrida fica por último porque nunca é
 catastrófica: O(n log n) esperado, pivô aleatório contra entradas
 desfavoráveis, partição em três vias contra repetidos. A intercalação e a rápida
-pura nunca são escolhidas porque a híbrida venceu as duas em todos os pontos
-medidos. Elas continuam na tabela como métodos fixos.
+pura nunca são escolhidas. Nas listas aleatórias, que são as que chegam à regra
+6, a híbrida foi a mais rápida das três (6,38 ms contra 7,33 e 7,77). Nos outros
+cenários ela ficou no máximo 3% atrás de uma delas (2,23 contra 2,18 da rápida
+na faixa estreita; 6,08 contra 5,91 da intercalação no quase ordenado), e nesses
+cenários o `escolher` usa outro método. As duas continuam na tabela como métodos
+fixos.
 
 **O aviso sobre a memória da contagem.** A regra 4 usa o mínimo e o máximo que a
 passada já calculou para decidir **antes** de chamar a contagem. Além disso, a
@@ -187,7 +200,8 @@ O `escolher` custa uma passada pela lista. Em 10 mil elementos, isso dá de 0,2 
 descida e soma uma queda. Na lista minúscula ele não percorre nada: devolve uma
 resposta pronta. Antes dessa mudança ele criava uma `Escolha` nova a cada
 chamada e custava 0,141 µs. Com a resposta pronta caiu para 0,026 µs, e o que o
-`ordenar` paga a mais que a inserção caiu de 36% para cerca de 13%.
+`ordenar` paga a mais que a inserção caiu de 36% para cerca de 12% (a razão
+1,12 da tabela).
 
 **Comparado com o melhor método de cada cenário, o `ordenar` perde de 12% a
 53%.** É o preço de não saber o cenário com antecedência. O custo pesa mais
@@ -209,15 +223,18 @@ estreita.
 2. O mínimo e o máximo dessa passada são repassados para a contagem e a base, que
    assim não percorrem a lista de novo. Isso economiza 0,164 ms na base (cenário
    aleatório) e 0,138 ms na contagem (faixa estreita), entre metade e dois
-   terços do custo do próprio `escolher`. Sem isso, o ganho seria anulado
-   exatamente como o enunciado avisa.
+   terços do custo do próprio `escolher`. Sem isso, o `ordenar` ficaria 1,19x
+   do melhor no aleatório (em vez de 1,12x) e 1,72x na faixa estreita (em vez de
+   1,25x). O ganho não seria anulado (a melhor escolha fixa perde 15,8x), mas o
+   pior caso do `ordenar` subiria de 1,53x para 1,72x.
 3. Medimos se uma passada em Python sai mesmo mais barata que várias passadas
    com funções nativas do Python, que rodam em C (`min`, `max` e a contagem de
    descidas com `map`). Na lista quase ordenada, a passada única ganha (0,197 ms
    contra 0,298). Na aleatória, perde (0,339 contra 0,268), em boa parte porque
-   calcula uma coisa que as nativas não calculam: as quedas. Em Python, o que pesa é o trabalho interpretado
-   por elemento, não o número de passadas. Por isso a passada foi escrita para
-   fazer duas comparações por elemento na maior parte dos casos.
+   calcula uma coisa que as nativas não calculam: as quedas. Em Python, o que
+   pesa é o trabalho interpretado por elemento, não o número de passadas. Por
+   isso a passada foi escrita para fazer duas comparações por elemento na maior
+   parte dos casos.
 
 ## 6. Um cenário em que o `escolher` erra a decisão
 
@@ -245,25 +262,53 @@ atravessar os 5000 da primeira, o que dá 25 milhões de deslocamentos.
 
 O `ordenar` levou **261 vezes** o tempo da base.
 
-Por que erra: a estimativa das quedas supõe que os elementos fora do lugar estão
-**isolados**, cada um com a sua queda. Num bloco deslocado, 5000 elementos estão
-fora do lugar, mas só o primeiro cria queda, porque os outros estão em ordem em
-relação aos vizinhos. A contagem de descidas tem o mesmo ponto cego. O erro se
-repete em qualquer lista formada por poucos blocos grandes ordenados na ordem
-errada.
+**Por que erra.** Somando os passos entre vizinhos de uma lista, o que ela sobe
+menos o que ela desce dá o último elemento menos o primeiro:
 
-Como dava para corrigir (não implementamos): contar, na mesma passada, quantos
-elementos ficam abaixo do maior valor visto até ali. Na lista das metades
-trocadas são 5000; no cenário quase ordenado, só os poucos elementos trocados. A
-passada já guarda o máximo, então isso custaria só um incremento a mais em
-alguns elementos. Mantivemos as regras como foram calibradas, porque qualquer
-estimativa barata sempre deixa algum caso de fora, e o enunciado pede justamente
-para mostrar um.
+```
+subidas − quedas = v[n−1] − v[0]
+```
+
+Então `quedas / amplitude` não mede a distância de cada elemento até o seu
+lugar: mede **quantas vezes a lista desce pela faixa de valores**. Quando os
+elementos fora do lugar estão isolados, como no cenário quase ordenado, cada um
+cria a sua própria queda, proporcional ao quanto está deslocado, e a estimativa
+funciona. Nas metades trocadas, 5000 elementos estão fora do lugar, mas só a
+emenda cria queda, porque os outros estão em ordem em relação aos vizinhos. A
+lista desce pela faixa uma vez só, e a estimativa dá 1. A contagem de descidas
+tem o mesmo ponto cego.
+
+O mesmo erro aparece em qualquer lista feita de sequências longas fora de
+ordem. O comando `python3 -m medicoes.erros` mede alguns desses casos
+(`resultados/erros.md`; é uma medição separada, por isso as metades trocadas
+aparecem com um tempo um pouco diferente):
+
+| lista | descidas/n | quedas/amplitude | escolha | `ordenar` | melhor fixo | `ordenar` / melhor |
+|---|---|---|---|---|---|---|
+| Quase ordenado (decisão certa, para comparar) | 0,018 | 0,08 | inserção | 0,58 ms | base 2,46 ms | 0,2 |
+| Metades trocadas | 0,000 | 1,00 | inserção | 643,94 ms | base 2,52 ms | 256x |
+| 3 listas ordenadas concatenadas | 0,000 | 2,00 | inserção | 420,02 ms | base 2,53 ms | 166x |
+| Blocos de 5 em ordem decrescente | 0,200 | 1,79 | inserção | 1276,15 ms | base 2,55 ms | 500x |
+| Blocos de 5 embaralhados + um valor extremo no fim | 0,100 | 0,33 | inserção | 628,11 ms | base 3,12 ms | 201x |
+
+"3 listas ordenadas concatenadas" é um caso bem realista: juntar três arquivos
+que já estavam ordenados. Na última linha, sem o valor extremo a lista teria
+quedas/amplitude na casa das centenas e iria para a base. O extremo aumenta a
+amplitude mil vezes e esconde as quedas, e as descidas (10%) não são
+suficientes para barrar.
+
+**Como dava para corrigir** (não implementamos): contar, na mesma passada,
+quantos elementos ficam abaixo do maior valor visto até ali. A coluna "abaixo
+do máximo" de `resultados/erros.md` mostra que essa medida separa os casos: 464
+no quase ordenado, contra 5000 a 9995 nos casos de erro. A passada já guarda o
+máximo, então isso custaria um incremento a mais em alguns elementos. Mantivemos
+as regras como foram calibradas porque qualquer estimativa barata deixa algum
+caso de fora, e o enunciado pede justamente para mostrar um.
 
 Há também erros mais baratos, de propósito. Por causa da margem de segurança,
 uma lista com 20% de trocas entre vizinhos (25,9% de descidas) vai para a base
 (2,54 ms), quando a inserção levaria 0,88 ms. É um erro de 2,9x, aceito para
-evitar o erro de 261x do outro lado.
+evitar os erros de 166x a 500x do outro lado.
 
 ## 7. Limitações
 
@@ -274,5 +319,6 @@ evitar o erro de 261x do outro lado.
   minúsculas foram medidos em vários tamanhos.
 - Os resultados são de Python. Em C, a diferença entre comparar e calcular um
   byte seria outra, e a ordem entre base e híbrida provavelmente mudaria.
-- A estimativa das quedas supõe chaves bem espalhadas na faixa. Com valores muito
-  concentrados em alguns pontos, ela fica menos precisa.
+- A estimativa das quedas supõe chaves bem espalhadas na faixa e elementos fora
+  do lugar isolados. Listas feitas de sequências longas fora de ordem, ou com um
+  valor extremo, enganam a regra (seção 6).
