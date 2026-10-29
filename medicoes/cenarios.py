@@ -8,7 +8,7 @@ import random
 
 CHAVE_GRANDE = 10**12   # valores em [0, 10^12): 40 bits, 5 passadas da base
 FAIXA_ESTREITA = 100    # valores em [0, 100)
-CHAVE_MINUSCULA = 10**6
+CHAVE_MINUSCULA = 10**4
 
 
 def aleatorio_chaves_grandes(n: int, semente: int) -> list[int]:

@@ -15,11 +15,10 @@ import sys
 from functools import partial
 from itertools import islice
 from pathlib import Path
-from statistics import median
 
 from medicoes import cenarios
 from medicoes.tabelas import numero, tabela
-from medicoes.tempo import cronometrar, cronometrar_lote, descrever_maquina
+from medicoes.tempo import cronometrar_intercalado, descrever_maquina
 from ordenacao.base import base
 from ordenacao.contagem import contagem
 from ordenacao.escolhedor import perfil
@@ -77,11 +76,10 @@ class Calibracao:
         self.secoes: list[str] = []
         self.limiares: dict[str, object] = {}
 
-    def segundos(self, funcao, entrada) -> float:
-        return median(cronometrar(funcao, entrada, self.repeticoes))
-
-    def segundos_por_lista(self, funcao, lote) -> float:
-        return median(cronometrar_lote(funcao, lote, self.repeticoes))
+    def menores(self, funcoes: dict, entrada, em_lote: bool = False) -> dict[str, float]:
+        """Menor tempo (s) de cada função, com as repetições intercaladas."""
+        tempos = cronometrar_intercalado(funcoes, entrada, self.repeticoes, em_lote=em_lote)
+        return {nome: min(lista) for nome, lista in tempos.items()}
 
     def secao(self, titulo: str, texto: str, cabecalho: list, linhas: list, conclusao: str):
         self.secoes.append(f"## {titulo}\n\n{texto}\n\n{tabela(cabecalho, linhas)}\n\n{conclusao}\n")
@@ -89,7 +87,7 @@ class Calibracao:
 
     def medir_corte(self):
         v = cenarios.aleatorio_chaves_grandes(N, self.semente)
-        tempos = {c: self.segundos(partial(hibrida, corte=c), v) for c in CORTES}
+        tempos = self.menores({c: partial(hibrida, corte=c) for c in CORTES}, v)
         melhor = min(tempos, key=tempos.get)
         self.limiares["CORTE"] = melhor
         self.hibrida = partial(hibrida, corte=melhor)
@@ -108,7 +106,7 @@ class Calibracao:
         linhas, resultados = [], []
         for n in TAMANHOS_MINUSCULOS:
             lote = cenarios.lote_minusculas(LISTAS_POR_LOTE, n, self.semente + n)
-            tempos = {nome: self.segundos_por_lista(f, lote) for nome, f in concorrentes.items()}
+            tempos = self.menores(concorrentes, lote, em_lote=True)
             vencedor = min(tempos, key=tempos.get)
             resultados.append((n, vencedor == "insercao"))
             linhas.append([n] + [numero(tempos[nome] * 1e6) for nome in concorrentes] + [vencedor])
@@ -116,9 +114,10 @@ class Calibracao:
         self.limiares["N_MINUSCULA"] = n_minuscula
         self.secao(
             "N_MINUSCULA",
-            f"Lotes de {LISTAS_POR_LOTE} listas aleatórias com valores em [0, 10^6). "
-            "Tempo médio por lista, em microssegundos. A contagem fica de fora: com "
-            "faixa de 10^6 ela aloca um milhão de contadores para ordenar poucos elementos.",
+            f"Lotes de {LISTAS_POR_LOTE} listas aleatórias com valores em "
+            f"[0, {cenarios.CHAVE_MINUSCULA}). Tempo médio por lista, em microssegundos. "
+            f"A contagem fica de fora: ela alocaria {cenarios.CHAVE_MINUSCULA} contadores "
+            "para ordenar poucos elementos.",
             ["n"] + list(concorrentes) + ["vencedor"],
             linhas,
             f"A inserção vence todos até **N_MINUSCULA = {n_minuscula}**.",
@@ -129,8 +128,8 @@ class Calibracao:
                 "hibrida": self.hibrida, "base": base}
 
     def _insercao_contra_outros(self, v):
-        t_insercao = self.segundos(insercao, v)
-        tempos = {nome: self.segundos(f, v) for nome, f in self._outros().items()}
+        tempos = self.menores({"insercao": insercao, **self._outros()}, v)
+        t_insercao = tempos.pop("insercao")
         melhor = min(tempos, key=tempos.get)
         return t_insercao, melhor, tempos[melhor]
 
@@ -197,9 +196,10 @@ class Calibracao:
             gerador = random.Random(self.semente)
             v = [gerador.randrange(faixa) for _ in range(N)]
             minimo, maximo = min(v), max(v)
-            t_cont = self.segundos(partial(contagem, minimo=minimo, maximo=maximo), v)
-            t_base = self.segundos(partial(base, minimo=minimo, maximo=maximo), v)
-            t_hib = self.segundos(self.hibrida, v)
+            tempos = self.menores({"contagem": partial(contagem, minimo=minimo, maximo=maximo),
+                                   "base": partial(base, minimo=minimo, maximo=maximo),
+                                   "hibrida": self.hibrida}, v)
+            t_cont, t_base, t_hib = tempos["contagem"], tempos["base"], tempos["hibrida"]
             venceu = t_cont <= min(t_base, t_hib)
             resultados.append((razao, venceu))
             linhas.append([numero(razao, 2), faixa, numero(t_cont * 1e3),
@@ -232,7 +232,8 @@ class Calibracao:
                 for _ in range(max(1, ELEMENTOS_POR_LOTE_BASE // n)):
                     v = [gerador.randrange(faixa) for _ in range(n)]
                     lote.append((v, min(v), max(v)))
-                razao = self.segundos_por_lista(rodar_base, lote) / self.segundos_por_lista(rodar_hibrida, lote)
+                tempos = self.menores({"base": rodar_base, "hibrida": rodar_hibrida}, lote, em_lote=True)
+                razao = tempos["base"] / tempos["hibrida"]
                 resultados.append((n, razao < 1))
                 celulas.append(numero(razao))
             n_min = inicio_das_vitorias_finais(resultados)
@@ -257,8 +258,8 @@ class Calibracao:
         linhas, comparacoes = [], []
         for nome, v in [("aleatória", cenarios.aleatorio_chaves_grandes(N, self.semente)),
                         ("quase ordenada", cenarios.quase_ordenado(N, self.semente))]:
-            t_perfil = self.segundos(perfil, v)
-            t_nativas = self.segundos(nativas, v)
+            tempos = self.menores({"perfil": perfil, "nativas": nativas}, v)
+            t_perfil, t_nativas = tempos["perfil"], tempos["nativas"]
             razao = t_perfil / t_nativas
             linhas.append([nome, numero(t_perfil * 1e3, 3), numero(t_nativas * 1e3, 3), numero(razao)])
             comparacoes.append(f"na lista {nome}, a passada única custa {numero(razao)}x o tempo das nativas")
@@ -279,7 +280,7 @@ class Calibracao:
             "# Calibração dos limiares\n\n"
             f"Gerado por `python3 -m medicoes.calibrar` em {datetime.date.today():%d/%m/%Y}.\n\n"
             f"- Máquina: {descrever_maquina()}\n"
-            f"- Repetições por medição: {self.repeticoes} (vale a mediana)\n"
+            f"- {self.repeticoes} repetições intercaladas entre os concorrentes de cada ponto; vale o menor tempo\n"
             f"- Semente: {self.semente}\n\n"
             "## Limiares sugeridos\n\n"
             f"```python\n{limiares}\n```\n"
