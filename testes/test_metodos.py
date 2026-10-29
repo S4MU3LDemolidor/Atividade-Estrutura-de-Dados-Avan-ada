@@ -155,17 +155,30 @@ class TestBase(CasosComuns, unittest.TestCase):
 class TestOrdenar(CasosComuns, unittest.TestCase):
     metodo = staticmethod(ordenar)
 
-    def test_listas_grandes_de_cada_tipo(self):
+    @staticmethod
+    def listas_grandes():
+        """Uma lista grande para cada regra do escolher (contagem, base,
+        híbrida e inserção)."""
         gerador = random.Random(9)
-        casos = {
+        return {
             "faixa estreita": [gerador.randrange(-50, 50) for _ in range(3000)],
             "chaves grandes": [gerador.randrange(-10**12, 10**12) for _ in range(3000)],
             "chaves enormes": [gerador.randrange(-2**90, 2**90) for _ in range(3000)],
             "quase ordenada": list(range(2990)) + [2995, 2993, 2991, 2994, 2990, 2999, 2992],
         }
-        for nome, v in casos.items():
+
+    def test_listas_grandes_de_cada_tipo(self):
+        for nome, v in self.listas_grandes().items():
             with self.subTest(caso=nome):
                 self.assertEqual(ordenar(v), sorted(v))
+
+    def test_nao_altera_listas_grandes(self):
+        # o caso comum usa 5 elementos e só passa pela regra das listas minúsculas
+        for nome, v in self.listas_grandes().items():
+            copia = list(v)
+            ordenar(v)
+            with self.subTest(caso=nome):
+                self.assertEqual(v, copia)
 
 
 if __name__ == "__main__":

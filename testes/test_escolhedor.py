@@ -4,12 +4,15 @@ As listas são montadas a partir das constantes do próprio escolhedor, então o
 testes continuam valendo depois de uma nova calibração.
 """
 
+import ast
 import math
 import random
 import unittest
+from pathlib import Path
 from unittest import mock
 
-from ordenacao import escolhedor
+from medicoes import cenarios
+from ordenacao import escolhedor, hibrida
 from ordenacao.base import passadas
 from ordenacao.contagem import LIMITE_CONTADORES
 from ordenacao.escolhedor import escolher, ordenar, perfil
@@ -111,8 +114,10 @@ class TestQuaseOrdenada(unittest.TestCase):
         self.assertLessEqual(2 * trocas, escolhedor.FRACAO_DESCIDAS * self.n)
         self.assertNotEqual(escolher(trocas_longe(self.n, trocas)).metodo, "insercao")
 
-    def test_valor_extremo_isolado_nao_engana(self):
-        # o extremo infla a amplitude e deixa as quedas pequenas; as descidas barram
+    def test_valor_extremo_em_lista_aleatoria_nao_engana(self):
+        # O extremo infla a amplitude e deixa as quedas pequenas; numa lista perto
+        # de aleatória, as descidas barram. Em listas com menos descidas o extremo
+        # engana a regra (ver a seção 6 do relatório).
         gerador = random.Random(4)
         v = [gerador.randrange(1000) for _ in range(self.n)] + [CHAVE_GRANDE]
         self.assertNotEqual(escolher(v).metodo, "insercao")
@@ -179,6 +184,34 @@ class TestPassadaUnica(unittest.TestCase):
         v = [gerador.randrange(-10**9, 10**9) for _ in range(3000)]
         escolha = escolher(v)
         self.assertEqual((escolha.minimo, escolha.maximo), (min(v), max(v)))
+
+
+class TestErroConhecido(unittest.TestCase):
+    """O cenário em que o escolher erra, descrito na seção 6 do relatório.
+
+    Se uma recalibração ou mudança de regra fizer este teste falhar, o relatório
+    precisa ser revisto.
+    """
+
+    def test_metades_trocadas_vai_para_insercao(self):
+        v = cenarios.metades_trocadas(10_000, 2026)
+        self.assertEqual(escolher(v).metodo, "insercao")
+
+
+class TestLimiaresDaCalibracao(unittest.TestCase):
+    """As constantes do código têm que ser as que a calibração sugeriu."""
+
+    def test_constantes_iguais_aos_limiares_sugeridos(self):
+        calibracao = Path(__file__).resolve().parent.parent / "resultados" / "calibracao.md"
+        texto = calibracao.read_text(encoding="utf-8")
+        bloco = texto.split("```python\n", 1)[1].split("```", 1)[0]
+        sugeridos = {}
+        for linha in bloco.strip().splitlines():
+            nome, valor = linha.split(" = ", 1)
+            sugeridos[nome] = ast.literal_eval(valor)
+        no_codigo = {nome: getattr(escolhedor, nome) for nome in sugeridos if nome != "CORTE"}
+        no_codigo["CORTE"] = hibrida.CORTE
+        self.assertEqual(no_codigo, sugeridos)
 
 
 class TestOrdenar(unittest.TestCase):
