@@ -8,6 +8,7 @@ aleatórias comparadas com sorted().
 import random
 import unittest
 
+from ordenacao.hibrida import hibrida
 from ordenacao.insercao import insercao
 from ordenacao.intercalacao import intercalacao
 from ordenacao.rapida import particionar, rapida
@@ -89,6 +90,18 @@ class TestRapida(CasosComuns, unittest.TestCase):
             self.assertTrue(all(x > pivo for x in a[maior + 1:fim + 1]))
             self.assertEqual(a[:ini] + a[fim + 1:], fora)
             self.assertEqual(sorted(a), original)
+
+
+
+class TestHibrida(CasosComuns, unittest.TestCase):
+    metodo = staticmethod(hibrida)
+
+    def test_cortes_extremos(self):
+        gerador = random.Random(5)
+        v = [gerador.randrange(-1000, 1000) for _ in range(500)]
+        for corte in (1, 64, 1000):
+            with self.subTest(corte=corte):
+                self.assertEqual(hibrida(v, corte=corte), sorted(v))
 
 
 if __name__ == "__main__":
