@@ -49,7 +49,7 @@ Todos os comandos abaixo são rodados na pasta do projeto.
 python3 -m unittest discover -s testes -t .
 ```
 
-São 125 testes e levam menos de 1 segundo. Os seis métodos e o `ordenar` passam
+São 134 testes e levam menos de 1 segundo. Os seis métodos e o `ordenar` passam
 pelos mesmos casos: lista vazia, um elemento, todos iguais, já ordenada,
 invertida, valores negativos, muitos repetidos e listas aleatórias comparadas
 com `sorted()`. Há também testes de cada regra do `escolher`.
@@ -65,7 +65,7 @@ escolher(list(range(1000))).metodo  # 'insercao'
 
 ### Refazer as medições
 
-São dois passos. A calibração vem antes porque é ela que define os limiares
+São três passos. A calibração vem antes porque é ela que define os limiares
 usados pelo `escolher`.
 
 **1. Calibração (cerca de 25 segundos)**
@@ -90,6 +90,16 @@ do `escolher` e o cenário em que ele erra. Grava as tabelas em
 As opções `--n` (padrão 10000), `--repeticoes` (padrão 5) e `--semente` (padrão
 2026) mudam o tamanho das listas, o número de repetições e a semente. Com a
 mesma semente as listas geradas são sempre as mesmas.
+
+**3. Casos em que o `escolher` erra (cerca de 20 segundos)**
+
+```bash
+python3 -m medicoes.erros
+```
+
+Mede listas feitas de sequências longas fora de ordem, que enganam a regra das
+quedas (seção 6 do relatório), e grava `resultados/erros.md`. Aceita as mesmas
+opções da medição final.
 
 ### Dicas para medir
 
