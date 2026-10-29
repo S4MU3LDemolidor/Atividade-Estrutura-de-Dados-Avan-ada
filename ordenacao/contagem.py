@@ -17,8 +17,9 @@ def contagem(v: list[int], minimo: int | None = None, maximo: int | None = None)
 
     Aceita valores negativos (os índices são deslocados pelo mínimo). Se minimo
     e maximo já forem conhecidos, podem ser passados para não percorrer a lista
-    de novo. Lança FaixaGrandeDemais se maximo - minimo + 1 passar de
-    LIMITE_CONTADORES. Não altera v.
+    de novo; eles precisam ser o mínimo e o máximo verdadeiros de v (valores
+    errados dão resultado errado ou IndexError). Lança FaixaGrandeDemais se
+    maximo - minimo + 1 passar de LIMITE_CONTADORES. Não altera v.
     """
     if not v:
         return []

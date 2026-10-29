@@ -98,8 +98,11 @@ def escolher(v: list[int]) -> Escolha:
     amplitude = maximo - minimo
 
     # quedas / amplitude estima quantas posições, em média, cada elemento anda
-    # na inserção. As descidas barram listas desordenadas com um valor extremo,
-    # que infla a amplitude e esconde as quedas.
+    # na inserção, quando os elementos fora do lugar estão isolados. As descidas
+    # barram listas perto de aleatórias com um valor extremo, que infla a
+    # amplitude e esconde as quedas. Limitação: quedas/amplitude conta quantas
+    # vezes a lista percorre a faixa de valores, então poucas sequências longas
+    # fora de ordem enganam a regra (ver RELATORIO.md, seção 6).
     if descidas <= FRACAO_DESCIDAS * n and quedas <= FATOR_QUEDAS * amplitude:
         metodo = "insercao"
     elif amplitude + 1 <= LIMITE_CONTADORES and amplitude + 1 <= FATOR_CONTAGEM * n:

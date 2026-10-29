@@ -19,7 +19,8 @@ def base(v: list[int], minimo: int | None = None, maximo: int | None = None) -> 
     """Devolve uma nova lista com os elementos de v em ordem crescente.
 
     Aceita valores negativos. Se minimo e maximo já forem conhecidos, podem ser
-    passados para não percorrer a lista de novo. Não altera v.
+    passados para não percorrer a lista de novo; eles precisam ser o mínimo e o
+    máximo verdadeiros de v, senão o resultado sai fora de ordem. Não altera v.
     """
     if not v:
         return []
